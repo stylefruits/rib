@@ -1,0 +1,15 @@
+{application, rib,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  inets,
+                  kernel,
+                  ssl,
+                  stdlib
+                 ]},
+  {mod, { rib_app, []}},
+  {env, [{backend, "https://api.github.com"},
+         {port, 3000}]}
+ ]}.
