@@ -1,4 +1,4 @@
-FROM msaraiva/erlang:17.5
+FROM msaraiva/erlang:18.1
 RUN \
   hash=6b293837b430360feace5232edd582e0b979882b93e36c3de60c69b403d841ac && \
   apk --update add curl && \
@@ -10,16 +10,15 @@ RUN \
 ADD ./ /opt/rib
 WORKDIR /opt/rib
 RUN \
+  mkdir -p config && chown daemon config && \
   apk --update add git gcc g++ libstdc++ \
-    erlang17-inets erlang17-syntax-tools erlang17-ssl erlang17-parsetools \
-    erlang17-crypto  erlang17-erts erlang17-erl-interface erlang17-eunit \
-    erlang17-dev erlang17-public-key erlang17-asn1 && \
-  mkdir ebin && \
+    erlang-inets erlang-syntax-tools erlang-dev erlang-parsetools \
+    erlang-crypto  erlang-erts erlang-erl-interface erlang-eunit \
+    erlang-ssl erlang-public-key erlang-asn1 && \
+  (test -d ebin || mkdir ebin) && \
   rebar -r get-deps clean compile && \
-  apk del git gcc g++ erlang17-dev && \
-  rm -rf /var/cache/apk/* && \
-  mkdir /opt/rib/config && \
-  chown daemon /opt/rib/config
+  apk del git gcc g++ erlang-dev && \
+  rm -rf /var/cache/apk/*
 USER daemon
 EXPOSE 3000
 CMD \
