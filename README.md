@@ -55,10 +55,10 @@ Do you want to learn more about Rib's API?
 
 ## Compiling and running
 
-Install `rebar` and
+Install `rebar3` and
 
-    rebar get-deps compile
-    erl -pa ebin -pa deps/*/ebin -noshell -s rib start
+    rebar3 compile
+    erl -pa ebin -pa _build/default/lib/*/ebin -noshell -s rib start
 
 If the service is running give it a try using
 
@@ -68,7 +68,7 @@ If the service is running give it a try using
 
 Run tests with
 
-    rebar compile eunit
+    rebar3 eunit
 
 ## License
 
