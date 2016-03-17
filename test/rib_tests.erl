@@ -51,6 +51,7 @@ integration_test_() ->
 test() ->
     Batch = [#{method => get, uri => <<"/">>, name => x},
              #{method => get, uri => <<"http://0:47812/">>},
+             #{method => options, uri => <<"/options">>},
              #{method => head, uri => <<"http://0:47812/hd-bar">>},
              #{method => head, uri => <<"/hd-{result=x:$.foo}">>},
              #{method => post, uri => <<"/{result=x:$.foo}">>}],
@@ -58,12 +59,13 @@ test() ->
     Request = {uri(), [], "application/json", RequestBody},
     {ok, {{"HTTP/1.1", 200, "OK"}, _, ResponseBody}} = httpc:request(post, Request, [], []),
     #{<<"results">> := Results} = jiffy:decode(ResponseBody, [return_maps]),
-    5 = length(Results),
+    6 = length(Results),
     lists:foreach(fun(#{<<"response">> := Resp, <<"request">> := Req}) ->
                           Body = maps:get(<<"body">>, Resp, undefined),
                           #{<<"method">> := Method, <<"uri">> := Uri} = Req,
                           case Uri of
                               <<"/">>       -> <<"get">>  = Method;
+                              <<"/options">>-> <<"options">> = Method;
                               <<"/hd-bar">> -> <<"head">> = Method;
                               _             -> <<"post">> = Method
                           end,

@@ -51,6 +51,7 @@ fetch_one(RawPath, Req) ->
     RequestArgs = [Method, case Method of
                                get -> {Url, headers()};
                                head -> {Url, headers()};
+                               options -> {Url, headers()};
                                post -> {Url, headers(), "", <<>>}
                            end, [], [], rib],
     {Taken, {ok, Resp}} = timer:tc(httpc, request, RequestArgs),
@@ -81,6 +82,7 @@ headers_to_ejson(Headers) ->
 
 binary_to_http_method(<<"get">>)    -> get;
 binary_to_http_method(<<"head">>)   -> head;
+binary_to_http_method(<<"options">>)-> options;
 binary_to_http_method(<<"post">>)   -> post.
 
 headers() ->
