@@ -37,6 +37,14 @@ handle_event(Event, Data, Args) ->
 
 %% Implementation
 
+handle('OPTIONS',[<<"v1">>, <<"batch">>], _) ->
+    {204,
+     [{<<"Access-Control-Allow-Headers">>, <<"Content-Type, Accept-Encoding">>},
+      {<<"Access-Control-Max-Age">>, <<"86400">>},
+      {<<"Access-Control-Allow-Origin">>, <<"*">>},
+      {<<"Access-Control-Allow-Methods">>, <<"POST">>}],
+     <<>>};
+
 handle('POST',[<<"v1">>, <<"batch">>], Req) ->
     Requests = jiffy:decode(elli_request:body(Req), [return_maps]),
     {Taken, {ok, Responses}} = timer:tc(rib_fetch, fetch_all, [Requests]),
