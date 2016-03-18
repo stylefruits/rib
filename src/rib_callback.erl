@@ -37,11 +37,12 @@ handle_event(Event, Data, Args) ->
 
 %% Implementation
 
-handle('OPTIONS',[<<"v1">>, <<"batch">>], _) ->
+handle('OPTIONS',[<<"v1">>, <<"batch">>], Req) ->
+    Origin = elli_request:get_header(<<"Origin">>, Req, <<"*">>),
     {204,
      [{<<"Access-Control-Allow-Headers">>, <<"Content-Type, Accept-Encoding">>},
       {<<"Access-Control-Max-Age">>, <<"86400">>},
-      {<<"Access-Control-Allow-Origin">>, <<"*">>},
+      {<<"Access-Control-Allow-Origin">>, Origin},
       {<<"Access-Control-Allow-Methods">>, <<"POST">>}],
      <<>>};
 
