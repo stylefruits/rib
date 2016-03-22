@@ -24,7 +24,7 @@ handle(Req, _Args) ->
     {Status, _, _} = Resp,
     error_logger:info_report(#{status => Status,
                                elapsed => Taken / 1.0e6}),
-    Resp.
+    with_cors_headers(Resp, Req).
 
 handle_event(Event, _Data, _Args)
   when Event == request_complete;
@@ -37,14 +37,8 @@ handle_event(Event, Data, Args) ->
 
 %% Implementation
 
-handle('OPTIONS',[<<"v1">>, <<"batch">>], Req) ->
-    Origin = elli_request:get_header(<<"Origin">>, Req, <<"*">>),
-    {204,
-     [{<<"Access-Control-Allow-Headers">>, <<"Content-Type, Accept-Encoding">>},
-      {<<"Access-Control-Max-Age">>, <<"86400">>},
-      {<<"Access-Control-Allow-Origin">>, Origin},
-      {<<"Access-Control-Allow-Methods">>, <<"POST">>}],
-     <<>>};
+handle('OPTIONS',[<<"v1">>, <<"batch">>], _Req) ->
+    {204, [], <<>>};
 
 handle('POST',[<<"v1">>, <<"batch">>], Req) ->
     Requests = jiffy:decode(elli_request:body(Req), [return_maps]),
@@ -54,6 +48,15 @@ handle('POST',[<<"v1">>, <<"batch">>], Req) ->
 
 handle(_, _, _Req) ->
     {404, [], <<"Not Found">>}.
+
+with_cors_headers({Status, Headers, Body}, Req) ->
+    Origin = elli_request:get_header(<<"Origin">>, Req, <<"*">>),
+    CORSHeaders = [{<<"Access-Control-Allow-Headers">>,
+                    <<"Content-Type, Accept-Encoding">>},
+                   {<<"Access-Control-Max-Age">>, <<"86400">>},
+                   {<<"Access-Control-Allow-Origin">>, Origin},
+                   {<<"Access-Control-Allow-Methods">>, <<"POST">>}],
+    {Status, Headers ++ CORSHeaders, Body}.
 
 error_response(Err) ->
     {500,
