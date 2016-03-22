@@ -46,8 +46,10 @@ handle_event(_Event, _Data, _Args) ->
 integration_test_() ->
     [{setup, fun setup/0, fun teardown/1, fun test/0},
      {setup, fun setup/0, fun teardown/1, fun test_gzip_response/0},
-     {setup, fun setup/0, fun teardown/1, fun test_cors_without_origin/0},
-     {setup, fun setup/0, fun teardown/1, fun test_cors_with_origin/0},
+     {setup, fun setup/0, fun teardown/1, fun test_options_cors_without_origin/0},
+     {setup, fun setup/0, fun teardown/1, fun test_options_cors_with_origin/0},
+     {setup, fun setup/0, fun teardown/1, fun test_post_cors_without_origin/0},
+     {setup, fun setup/0, fun teardown/1, fun test_post_cors_with_origin/0},
      {setup, fun setup/0, fun teardown/1, fun test_domain_violation/0}].
 
 test() ->
@@ -91,7 +93,7 @@ test_gzip_response() ->
     {ok, {{_, 200, _}, _, Body}} = httpc:request(post, Request, [], []),
     zlib:gunzip(Body).
 
-test_cors_without_origin() ->
+test_options_cors_without_origin() ->
     Request = {uri(), []},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
@@ -100,7 +102,7 @@ test_cors_without_origin() ->
      {"access-control-allow-origin", "*"},
      {"access-control-allow-methods", "POST"}] = Headers.
 
-test_cors_with_origin() ->
+test_options_cors_with_origin() ->
     Request = {uri(), [{"origin", "http://example.org"}]},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
@@ -108,6 +110,28 @@ test_cors_with_origin() ->
      {"access-control-max-age", "86400"},
      {"access-control-allow-origin", "http://example.org"},
      {"access-control-allow-methods", "POST"}] = Headers.
+
+test_post_cors_without_origin() ->
+    Request = {uri(), [], "application/json", "[]"},
+    {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
+    HeadersSubset = proplists:delete("content-length", Headers),
+    [{"connection", "Keep-Alive"},
+     {"content-type","application/json; charset=utf-8"},
+     {"access-control-allow-headers", "Content-Type, Accept-Encoding"},
+     {"access-control-max-age", "86400"},
+     {"access-control-allow-origin", "*"},
+     {"access-control-allow-methods", "POST"}] = HeadersSubset.
+
+test_post_cors_with_origin() ->
+    Request = {uri(), [{"origin", "foo"}], "application/json", "[]"},
+    {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
+    HeadersSubset = proplists:delete("content-length", Headers),
+    [{"connection", "Keep-Alive"},
+     {"content-type","application/json; charset=utf-8"},
+     {"access-control-allow-headers", "Content-Type, Accept-Encoding"},
+     {"access-control-max-age", "86400"},
+     {"access-control-allow-origin", "foo"},
+     {"access-control-allow-methods", "POST"}] = HeadersSubset.
 
 uri() -> "http://0:47811/v1/batch".
 
