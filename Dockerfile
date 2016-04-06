@@ -1,8 +1,8 @@
 FROM msaraiva/erlang:18.1
 RUN \
-  hash=2d527b2a42e7c3a0c236de92d5ef951a5a27b462a1e8364e77928505e760bfd1 && \
+  hash=de8846e03bd35f4987de2121401851224e1e7270bf93dbd77d92466b1006451d && \
   apk --update add curl && \
-  curl -L https://s3.amazonaws.com/rebar3/rebar3 > /usr/bin/rebar3 && \
+  curl -L https://github.com/erlang/rebar3/releases/download/3.1.0/rebar3 -o /usr/bin/rebar3 && \
   echo $hash\ \ /usr/bin/rebar3 | sha256sum -c && \
   apk del curl && \
   rm -rf /var/cache/apk/* && \
