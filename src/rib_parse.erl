@@ -29,15 +29,19 @@ format_cache_control(Value) ->
 
 minimal_cache(Headers) ->
     lists:foldl(fun(Elem, AccIn) ->
-        PrivateNew = proplists:get_value(private, Elem, false),
-        PrivateOld = proplists:get_value(private, AccIn, false),
-        MaxAgeNew = proplists:get_value('max-age', Elem, "3600"),
-        MaxAgeOld = proplists:get_value('max-age', AccIn, "3600"),
-        MaxAge = minimal_max_age(MaxAgeOld, MaxAgeNew),
-        if
-          (not PrivateNew) and (not PrivateOld) -> [{public, true}, {'max-age', MaxAge}];
-          true -> [{private, true}, {'max-age', MaxAge}]
-        end
+        case Elem of
+          undefined -> undefined;
+          Elem ->
+            PrivateNew = proplists:get_value(private, Elem, false),
+            PrivateOld = proplists:get_value(private, AccIn, false),
+            MaxAgeNew = proplists:get_value('max-age', Elem, "3600"),
+            MaxAgeOld = proplists:get_value('max-age', AccIn, "3600"),
+            MaxAge = minimal_max_age(MaxAgeOld, MaxAgeNew),
+            case {PrivateNew, PrivateOld} of
+              {false, false} ->  [{public, true}, {'max-age', MaxAge}];
+              _ -> [{private, true}, {'max-age', MaxAge}]
+            end
+         end
       end,
       [{public, true},
        {'max-age', "3600"}],

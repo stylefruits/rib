@@ -74,8 +74,11 @@ error_response(Err) ->
 
 encode_response(Req, Cache, Data) ->
     JSON = jiffy:encode(Data),
-    Headers = [{<<"Content-Type">>, <<"application/json; charset=utf-8">>},
-               {<<"Cache-Control">>, list_to_binary(Cache)}],
+    Headers = [{<<"Content-Type">>, <<"application/json; charset=utf-8">>}|
+               case Cache of
+                 undefined -> [];
+                 _ -> [{<<"Cache-Control">>, list_to_binary(Cache)}]
+               end],
     case accepted_encoding(Req) of
         none -> {200, Headers, JSON};
         gzip -> {200,
