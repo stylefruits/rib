@@ -4,7 +4,8 @@
 %% API
 
 fetch_all(Requests) ->
-    {ok, Limiter} = rib_limiter:start_link([{max, 64}]),
+    Limit = application:get_env(rib, max_requests, 64),
+    {ok, Limiter} = rib_limiter:start_link([{max, Limit}]),
     Processed = [preprocess(Req) || Req <- Requests],
     Groups = rib_depend:requests_into_groups(Processed),
     FoldFun = fun (Group, History) ->
