@@ -56,7 +56,14 @@ fetch_one(RawPath, Req) ->
                                post -> {Url, headers(), "", <<>>}
                            end, [], [], rib],
     {Taken, {ok, Resp}} = timer:tc(httpc, request, RequestArgs),
-    Body = rib_slurp:slurp_response(Resp),
+    Body = try
+               rib_slurp:slurp_response(Resp)
+           catch
+               error:Reason -> error(#{request => Req,
+                                       raw_path => RawPath,
+                                       response => Resp,
+                                       reason => Reason})
+           end,
     {{_, Status, _}, Headers, _} = Resp,
     BaseResponse = #{status => Status,
                      time_taken => Taken / 1000,
