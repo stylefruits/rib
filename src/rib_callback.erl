@@ -35,6 +35,9 @@ handle_event(Event, Data, Args) ->
 
 %% Implementation
 
+handle('GET',[<<"metrics">>], _Req) ->
+    {200, [], rib_metrics:report()};
+
 handle('OPTIONS',[<<"v1">>, <<"batch">>], _Req) ->
     {204, [], <<>>};
 

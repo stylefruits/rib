@@ -4,6 +4,7 @@
 
 %% API
 -export([start_link/0,
+         report/0,
          observe/3,
          inc/2]).
 
@@ -22,6 +23,9 @@ inc(Metric, Labels) ->
 
 observe(Metric, Labels, Value) ->
     gen_server:cast(rib_metrics, {observe, Metric, Labels, Value}).
+
+report() ->
+    prometheus_text_format:format().
 
 %% gen_server API
 
