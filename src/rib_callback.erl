@@ -1,7 +1,7 @@
 -module(rib_callback).
 
 %% elli_handler callbacks
--export([handle/2, handle_event/3]).
+-export([handle/2, handle_event/3, auth_fun/3]).
 
 -include_lib("elli/include/elli.hrl").
 -behaviour(elli_handler).
@@ -32,6 +32,12 @@ handle_event(Event, _Data, _Args)
 handle_event(Event, Data, Args) ->
   error_logger:info_msg("~s:handle_event: ~p~n",
                         [?MODULE, {Event, Data, Args}]).
+
+auth_fun(Req, User, Password) ->
+    case elli_request:path(Req) of
+        [<<"metrics">>] -> authenticate_metrics(User, Password);
+        _ -> ok
+    end.
 
 %% Implementation
 
@@ -82,6 +88,14 @@ accepted_encoding(Req) ->
                 true  -> gzip;
                 false -> none
             end
+    end.
+
+authenticate_metrics(User, Password) ->
+    {ok, ValidUser} = application:get_env(rib, metrics_user),
+    {ok, ValidPass} = application:get_env(rib, metrics_pass),
+    case {User, Password} of
+        {ValidUser, ValidPass} -> ok;
+        _ -> unauthorized
     end.
 
 log_response(TimeTakenUsec, Response) ->

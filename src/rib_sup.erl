@@ -24,7 +24,12 @@ start_link() ->
 
 init([]) ->
     {ok, Port} = application:get_env(rib, port),
-    ElliOpts = [{callback, rib_callback}, {port, Port}],
+    AuthConfig = [{auth_fun, fun rib_callback:auth_fun/3}],
+    CallbackArgs = [{mods, [{elli_basicauth, AuthConfig},
+                            {rib_callback, []}]}],
+    ElliOpts = [{callback, elli_middleware},
+                {callback_args, CallbackArgs},
+                {port, Port}],
     ElliSpec = {
       fancy_http,
       {elli, start_link, [ElliOpts]},
