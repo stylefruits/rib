@@ -21,9 +21,7 @@ handle(Req, _Args) ->
                                          Err -> error_response(Err)
                                      end
                              end),
-    {Status, _, _} = Resp,
-    error_logger:info_report(#{status => Status,
-                               elapsed => Taken / 1.0e6}),
+    log_response(Taken, Resp),
     with_cors_headers(Resp, Req).
 
 handle_event(Event, _Data, _Args)
@@ -82,3 +80,13 @@ accepted_encoding(Req) ->
                 false -> none
             end
     end.
+
+log_response(TimeTakenUsec, Response) ->
+    {Status, _, _} = Response,
+    TimeTakenSec = TimeTakenUsec / 1.0e6,
+    TimeTakenMsec = TimeTakenUsec / 1.0e3,
+    ok = rib_metrics:observe(rib_callback_time_taken_msec,
+                             [Status],
+                             TimeTakenMsec),
+    error_logger:info_report(#{status => Status,
+                               elapsed => TimeTakenSec}).

@@ -65,6 +65,7 @@ fetch_one(RawPath, Req) ->
                                        reason => Reason})
            end,
     {{_, Status, _}, Headers, _} = Resp,
+    ok = rib_metrics:inc(rib_fetch_response, [Status]),
     BaseResponse = #{status => Status,
                      time_taken => Taken / 1000,
                      headers => headers_to_ejson(Headers)},

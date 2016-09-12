@@ -15,6 +15,7 @@ start(_StartType, _StartArgs) ->
       {error, {already_started, _}} -> ok
     end,
     {ok, _} = rib_conn_killer_sup:start_link(),
+    {ok, _} = rib_metrics:start_link(),
     {ok, _} = rib_sup:start_link().
 
 stop(_State) ->
