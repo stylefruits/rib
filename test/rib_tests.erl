@@ -45,6 +45,8 @@ handle_event(_Event, _Data, _Args) ->
 
 integration_test_() ->
     [{setup, fun setup/0, fun teardown/1, fun test/0},
+     {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_401/0},
+     {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_200/0},
      {setup, fun setup/0, fun teardown/1, fun test_gzip_response/0},
      {setup, fun setup/0, fun teardown/1, fun test_options_cors_without_origin/0},
      {setup, fun setup/0, fun teardown/1, fun test_options_cors_with_origin/0},
@@ -132,6 +134,21 @@ test_post_cors_with_origin() ->
      {"access-control-max-age", "86400"},
      {"access-control-allow-origin", "foo"},
      {"access-control-allow-methods", "POST"}] = HeadersSubset.
+
+
+%% $ echo -n foo:bar | base64
+metrics_auth_header() ->
+    {"Authorization", "Basic Zm9vOmJhcg=="}.
+
+metrics_uri() -> "http://0:47811/metrics".
+
+test_metrics_auth_401() ->
+    Request = {metrics_uri(), []},
+    {ok, {{_, 401, _}, _, _}} = httpc:request(get, Request, [], []).
+
+test_metrics_auth_200() ->
+    Request = {metrics_uri(), [metrics_auth_header()]},
+    {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
 
 uri() -> "http://0:47811/v1/batch".
 

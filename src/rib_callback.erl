@@ -1,7 +1,7 @@
 -module(rib_callback).
 
 %% elli_handler callbacks
--export([handle/2, handle_event/3]).
+-export([handle/2, handle_event/3, auth_fun/3]).
 
 -include_lib("elli/include/elli.hrl").
 -behaviour(elli_handler).
@@ -21,9 +21,7 @@ handle(Req, _Args) ->
                                          Err -> error_response(Err)
                                      end
                              end),
-    {Status, _, _} = Resp,
-    error_logger:info_report(#{status => Status,
-                               elapsed => Taken / 1.0e6}),
+    log_response(Taken, Resp),
     with_cors_headers(Resp, Req).
 
 handle_event(Event, _Data, _Args)
@@ -35,7 +33,16 @@ handle_event(Event, Data, Args) ->
   error_logger:info_msg("~s:handle_event: ~p~n",
                         [?MODULE, {Event, Data, Args}]).
 
+auth_fun(Req, User, Password) ->
+    case elli_request:path(Req) of
+        [<<"metrics">>] -> authenticate_metrics(User, Password);
+        _ -> ok
+    end.
+
 %% Implementation
+
+handle('GET',[<<"metrics">>], _Req) ->
+    {200, [], rib_metrics:report()};
 
 handle('OPTIONS',[<<"v1">>, <<"batch">>], _Req) ->
     {204, [], <<>>};
@@ -82,3 +89,21 @@ accepted_encoding(Req) ->
                 false -> none
             end
     end.
+
+authenticate_metrics(User, Password) ->
+    {ok, ValidUser} = application:get_env(rib, metrics_user),
+    {ok, ValidPass} = application:get_env(rib, metrics_pass),
+    case {User, Password} of
+        {ValidUser, ValidPass} -> ok;
+        _ -> unauthorized
+    end.
+
+log_response(TimeTakenUsec, Response) ->
+    {Status, _, _} = Response,
+    TimeTakenSec = TimeTakenUsec / 1.0e6,
+    TimeTakenMsec = TimeTakenUsec / 1.0e3,
+    ok = rib_metrics:observe(rib_callback_time_taken_msec,
+                             [Status],
+                             TimeTakenMsec),
+    error_logger:info_report(#{status => Status,
+                               elapsed => TimeTakenSec}).
