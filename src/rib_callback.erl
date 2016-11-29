@@ -41,6 +41,9 @@ auth_fun(Req, User, Password) ->
 
 %% Implementation
 
+handle('GET',[<<"health-check">>], _Req) ->
+    {200, [], <<"Ok\n">>};
+
 handle('GET',[<<"metrics">>], _Req) ->
     {200, [], rib_metrics:report()};
 

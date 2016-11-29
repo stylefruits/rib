@@ -47,6 +47,7 @@ integration_test_() ->
     [{setup, fun setup/0, fun teardown/1, fun test/0},
      {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_401/0},
      {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_200/0},
+     {setup, fun setup/0, fun teardown/1, fun test_health_check_200/0},
      {setup, fun setup/0, fun teardown/1, fun test_gzip_response/0},
      {setup, fun setup/0, fun teardown/1, fun test_options_cors_without_origin/0},
      {setup, fun setup/0, fun teardown/1, fun test_options_cors_with_origin/0},
@@ -148,6 +149,12 @@ test_metrics_auth_401() ->
 
 test_metrics_auth_200() ->
     Request = {metrics_uri(), [metrics_auth_header()]},
+    {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
+
+health_uri() -> "http://0:47811/health-check".
+
+test_health_check_200() ->
+    Request = {health_uri(), []},
     {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
 
 uri() -> "http://0:47811/v1/batch".
