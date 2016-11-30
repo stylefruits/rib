@@ -1,5 +1,7 @@
 # Ri͜b: Requests in Batches
 
+[![Build Status](https://travis-ci.org/stylefruits/rib.svg?branch=master)](https://travis-ci.org/stylefruits/rib)
+
 **tl;dr**: Rib executes batches of inter-dependent HTTP requests from your
 clients to your JSON API, with automagical parallelisation built in.
 
