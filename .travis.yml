@@ -1,0 +1,5 @@
+language: erlang
+otp_release:
+  - 18.1
+install: ./install-dependencies.sh
+script: "./rebar3 eunit"
