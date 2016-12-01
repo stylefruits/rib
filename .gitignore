@@ -7,3 +7,4 @@ erl_crash.dump
 .concrete/DEV_MODE
 _build
 rebar.lock
+/rebar3

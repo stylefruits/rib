@@ -16,7 +16,7 @@
 %% ===================================================================
 
 init([]) ->
-    ElliOpts = [{callback, ?MODULE}, {port, 47812}],
+    ElliOpts = [{callback, ?MODULE}, {port, 47812}, {reuseaddr, true}],
     ElliSpec = {
       fancy_http,
       {elli, start_link, [ElliOpts]},
@@ -178,4 +178,5 @@ teardown(Pid) ->
     after 1000 ->
               error(exit_timeout)
     end,
-    ok = application:stop(rib).
+    ok = application:stop(rib),
+    ok = application:unload(rib).

@@ -19,4 +19,5 @@ start(_StartType, _StartArgs) ->
     {ok, _} = rib_sup:start_link().
 
 stop(_State) ->
+    inets:stop(httpc, rib),
     ok.
