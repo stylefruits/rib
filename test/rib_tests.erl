@@ -178,4 +178,5 @@ teardown(Pid) ->
     after 1000 ->
               error(exit_timeout)
     end,
-    ok = application:stop(rib).
+    ok = application:stop(rib),
+    ok = application:unload(rib).
