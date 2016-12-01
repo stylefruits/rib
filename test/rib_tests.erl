@@ -16,7 +16,7 @@
 %% ===================================================================
 
 init([]) ->
-    ElliOpts = [{callback, ?MODULE}, {port, 47812}],
+    ElliOpts = [{callback, ?MODULE}, {port, 47812}, {reuseaddr, true}],
     ElliSpec = {
       fancy_http,
       {elli, start_link, [ElliOpts]},
