@@ -12,9 +12,12 @@ start_link() ->
 
 go() ->
     {ok, Base} = application:get_env(rib, backend),
+    TimeoutSecs = application:get_env(rib, timeout, 10),
+
     Url = Base ++ "/",
     Headers = [{"connection", "close"}],
-    {ok, _} = httpc:request(get, {Url, Headers}, [], [], rib),
+    Opts = [{timeout, timer:seconds(TimeoutSecs)}],
+    {ok, _} = httpc:request(get, {Url, Headers}, Opts, [], rib),
     receive
     after
         30000 -> go()
