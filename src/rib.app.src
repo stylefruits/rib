@@ -11,6 +11,7 @@
                  ]},
   {mod, { rib_app, []}},
   {env, [{backend, "https://api.github.com"},
+         {timeout, 10},
          {metrics_user, <<"foo">>},
          {metrics_pass, <<"bar">>},
          {port, 3000}]}

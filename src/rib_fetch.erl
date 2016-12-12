@@ -47,14 +47,19 @@ maybe_distinct(_Req, Paths) ->
   Paths.
 
 fetch_one(RawPath, Req) ->
+    TimeoutSecs = application:get_env(rib, timeout, 10),
     #{method := Method, name := Name} = Req,
     {Url, Path} = resolve_path(RawPath),
-    RequestArgs = [Method, case Method of
-                               get -> {Url, headers()};
-                               head -> {Url, headers()};
-                               options -> {Url, headers()};
-                               post -> {Url, headers(), "", <<>>}
-                           end, [], [], rib],
+    RequestArgs = [Method,
+                   case Method of
+                     get -> {Url, headers()};
+                     head -> {Url, headers()};
+                     options -> {Url, headers()};
+                     post -> {Url, headers(), "", <<>>}
+                   end,
+                   [{timeout, timer:seconds(TimeoutSecs)}],
+                   [],
+                   rib],
     {Taken, {ok, Resp}} = timer:tc(httpc, request, RequestArgs),
     Body = try
                rib_slurp:slurp_response(Resp)
