@@ -1,43 +1,6 @@
 -module(rib_tests).
 
--behaviour(supervisor).
--behaviour(elli_handler).
-
-%% elli_handler callbacks
--export([handle/2, handle_event/3]).
-
-%% supervisor callbacks
--export([init/1]).
-
 -include_lib("eunit/include/eunit.hrl").
-
-%% ===================================================================
-%% supervisor callbacks
-%% ===================================================================
-
-init([]) ->
-    ElliOpts = [{callback, ?MODULE}, {port, 47812}, {reuseaddr, true}],
-    ElliSpec = {
-      fancy_http,
-      {elli, start_link, [ElliOpts]},
-      permanent,
-      5000,
-      worker,
-      [elli]},
-
-    {ok, { {one_for_one, 5, 10}, [ElliSpec]} }.
-
-%% ===================================================================
-%% elli_handler callbacks
-%% ===================================================================
-
-handle(_Req, _Args) ->
-    {200,
-     [{"content-type", "application/json"}],
-     jiffy:encode(#{foo => bar})}.
-
-handle_event(_Event, _Data, _Args) ->
-    ok.
 
 %% ===================================================================
 %% Integration tests
@@ -164,19 +127,21 @@ setup() ->
         ok -> ok;
         {error, {already_loaded, rib}} -> ok
     end,
+    {ok, Pid} = elli:start_link([{callback, rib_backend_callback},
+                                 {port, 47812},
+                                 {reuseaddr, true}]),
     ok = application:set_env(rib, port, 47811),
     ok = application:set_env(rib, backend, "http://0:47812"),
-    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
     ok = rib:start(),
     Pid.
 
 teardown(Pid) ->
-    process_flag(trap_exit, true),
-    true = exit(Pid, shutdown),
+    Ref = monitor(process, Pid),
+    exit(Pid, normal),
     receive
-        {'EXIT', Pid, _Reason} -> ok
-    after 1000 ->
-              error(exit_timeout)
+        {'DOWN', Ref, process, Pid, _Reason} -> ok
+    after 1000
+          -> error(exit_timeout)
     end,
     ok = application:stop(rib),
     ok = application:unload(rib).
