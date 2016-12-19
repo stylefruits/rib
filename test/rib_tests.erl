@@ -29,13 +29,13 @@ integration_test_() ->
 
 test(TestState) ->
     Batch = [#{method => get, uri => <<"/">>, name => x},
-             #{method => get, uri => <<"http://0:47812/">>},
+             #{method => get, uri => binary_backend_uri(TestState, "/")},
              #{method => options, uri => <<"/options">>},
-             #{method => head, uri => <<"http://0:47812/hd-bar">>},
+             #{method => head, uri => binary_backend_uri(TestState, "/hd-bar")},
              #{method => head, uri => <<"/hd-{result=x:$.foo}">>},
              #{method => post, uri => <<"/{result=x:$.foo}">>}],
     RequestBody = jiffy:encode(Batch),
-    Request = {uri(), [], "application/json", RequestBody},
+    Request = {batch_uri(TestState), [], "application/json", RequestBody},
     {ok, {{"HTTP/1.1", 200, "OK"}, _, ResponseBody}} = httpc:request(post, Request, [], []),
     #{<<"results">> := Results} = jiffy:decode(ResponseBody, [return_maps]),
     6 = length(Results),
@@ -58,18 +58,18 @@ test(TestState) ->
 test_domain_violation(TestState) ->
     Batch = [#{method => get, uri => <<"http://fail:47812/">>}],
     RequestBody = jiffy:encode(Batch),
-    Request = {uri(), [], "application/json", RequestBody},
+    Request = {batch_uri(TestState), [], "application/json", RequestBody},
     {ok, {{"HTTP/1.1", 500, _}, _, _}} = httpc:request(post, Request, [], []).
 
 test_gzip_response(TestState) ->
     RequestBody = jiffy:encode([]),
     AcceptEncoding = {"accept-encoding", "gzip"},
-    Request = {uri(), [AcceptEncoding], "application/json", RequestBody},
+    Request = {batch_uri(TestState), [AcceptEncoding], "application/json", RequestBody},
     {ok, {{_, 200, _}, _, Body}} = httpc:request(post, Request, [], []),
     zlib:gunzip(Body).
 
 test_options_cors_without_origin(TestState) ->
-    Request = {uri(), []},
+    Request = {batch_uri(TestState), []},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
      {"access-control-allow-headers", "Content-Type, Accept-Encoding"},
@@ -78,7 +78,7 @@ test_options_cors_without_origin(TestState) ->
      {"access-control-allow-methods", "POST"}] = Headers.
 
 test_options_cors_with_origin(TestState) ->
-    Request = {uri(), [{"origin", "http://example.org"}]},
+    Request = {batch_uri(TestState), [{"origin", "http://example.org"}]},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
      {"access-control-allow-headers", "Content-Type, Accept-Encoding"},
@@ -87,7 +87,7 @@ test_options_cors_with_origin(TestState) ->
      {"access-control-allow-methods", "POST"}] = Headers.
 
 test_post_cors_without_origin(TestState) ->
-    Request = {uri(), [], "application/json", "[]"},
+    Request = {batch_uri(TestState), [], "application/json", "[]"},
     {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
     HeadersSubset = proplists:delete("content-length", Headers),
     [{"connection", "Keep-Alive"},
@@ -98,7 +98,7 @@ test_post_cors_without_origin(TestState) ->
      {"access-control-allow-methods", "POST"}] = HeadersSubset.
 
 test_post_cors_with_origin(TestState) ->
-    Request = {uri(), [{"origin", "foo"}], "application/json", "[]"},
+    Request = {batch_uri(TestState), [{"origin", "foo"}], "application/json", "[]"},
     {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
     HeadersSubset = proplists:delete("content-length", Headers),
     [{"connection", "Keep-Alive"},
@@ -113,23 +113,17 @@ test_post_cors_with_origin(TestState) ->
 metrics_auth_header() ->
     {"Authorization", "Basic Zm9vOmJhcg=="}.
 
-metrics_uri() -> "http://0:47811/metrics".
-
 test_metrics_auth_401(TestState) ->
-    Request = {metrics_uri(), []},
+    Request = {metrics_uri(TestState), []},
     {ok, {{_, 401, _}, _, _}} = httpc:request(get, Request, [], []).
 
 test_metrics_auth_200(TestState) ->
-    Request = {metrics_uri(), [metrics_auth_header()]},
+    Request = {metrics_uri(TestState), [metrics_auth_header()]},
     {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
-
-health_uri() -> "http://0:47811/health-check".
 
 test_health_check_200(TestState) ->
-    Request = {health_uri(), []},
+    Request = {health_uri(TestState), []},
     {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
-
-uri() -> "http://0:47811/v1/batch".
 
 %% ===================================================================
 %% Setup/Teardown
@@ -141,6 +135,21 @@ random_port() ->
 
 format_base_url(Port) ->
     "http://0:" ++ integer_to_list(Port).
+
+uri({_, RibBase, _}, Path) ->
+    RibBase ++ Path.
+
+binary_backend_uri({_, _, BackendBase}, Path) ->
+    list_to_binary(BackendBase ++ Path).
+
+health_uri(TestState) ->
+    uri(TestState, "/health-check").
+
+metrics_uri(TestState) ->
+    uri(TestState, "/metrics").
+
+batch_uri(TestState) ->
+    uri(TestState, "/v1/batch").
 
 setup() ->
     RibPort = random_port(),
