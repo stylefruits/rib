@@ -131,20 +131,35 @@ test_health_check_200(TestState) ->
 
 uri() -> "http://0:47811/v1/batch".
 
+%% ===================================================================
+%% Setup/Teardown
+%% ===================================================================
+random_port() ->
+    Min = 1024,
+    Max = 65534,
+    Min + rand:uniform(Max-Min).
+
+format_base_url(Port) ->
+    "http://0:" ++ integer_to_list(Port).
+
 setup() ->
+    RibPort = random_port(),
+    RibBase = format_base_url(RibPort),
+    BackendPort = RibPort + 1,
+    BackendBase = format_base_url(BackendPort),
     case application:load(rib) of
         ok -> ok;
         {error, {already_loaded, rib}} -> ok
     end,
     {ok, Pid} = elli:start_link([{callback, rib_backend_callback},
-                                 {port, 47812},
+                                 {port, BackendPort},
                                  {reuseaddr, true}]),
-    ok = application:set_env(rib, port, 47811),
-    ok = application:set_env(rib, backend, "http://0:47812"),
+    ok = application:set_env(rib, port, RibPort),
+    ok = application:set_env(rib, backend, BackendBase),
     ok = rib:start(),
-    Pid.
+    {Pid, RibBase, BackendBase}.
 
-teardown(Pid) ->
+teardown({Pid, _, _}) ->
     Ref = monitor(process, Pid),
     exit(Pid, normal),
     receive
