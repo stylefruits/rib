@@ -7,18 +7,27 @@
 %% ===================================================================
 
 integration_test_() ->
-    [{setup, fun setup/0, fun teardown/1, fun test/0},
-     {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_401/0},
-     {setup, fun setup/0, fun teardown/1, fun test_metrics_auth_200/0},
-     {setup, fun setup/0, fun teardown/1, fun test_health_check_200/0},
-     {setup, fun setup/0, fun teardown/1, fun test_gzip_response/0},
-     {setup, fun setup/0, fun teardown/1, fun test_options_cors_without_origin/0},
-     {setup, fun setup/0, fun teardown/1, fun test_options_cors_with_origin/0},
-     {setup, fun setup/0, fun teardown/1, fun test_post_cors_without_origin/0},
-     {setup, fun setup/0, fun teardown/1, fun test_post_cors_with_origin/0},
-     {setup, fun setup/0, fun teardown/1, fun test_domain_violation/0}].
+    RawTests = [fun test/1,
+                fun test_metrics_auth_401/1,
+                fun test_metrics_auth_200/1,
+                fun test_health_check_200/1,
+                fun test_gzip_response/1,
+                fun test_options_cors_without_origin/1,
+                fun test_options_cors_with_origin/1,
+                fun test_post_cors_without_origin/1,
+                fun test_post_cors_with_origin/1,
+                fun test_domain_violation/1],
+    lists:map(fun (Test) ->
+                      {setup,
+                       fun setup/0,
+                       fun teardown/1,
+                       fun (TestState) ->
+                               [fun () -> Test(TestState) end]
+                       end}
+              end,
+              RawTests).
 
-test() ->
+test(TestState) ->
     Batch = [#{method => get, uri => <<"/">>, name => x},
              #{method => get, uri => <<"http://0:47812/">>},
              #{method => options, uri => <<"/options">>},
@@ -46,20 +55,20 @@ test() ->
                   end,
                   Results).
 
-test_domain_violation() ->
+test_domain_violation(TestState) ->
     Batch = [#{method => get, uri => <<"http://fail:47812/">>}],
     RequestBody = jiffy:encode(Batch),
     Request = {uri(), [], "application/json", RequestBody},
     {ok, {{"HTTP/1.1", 500, _}, _, _}} = httpc:request(post, Request, [], []).
 
-test_gzip_response() ->
+test_gzip_response(TestState) ->
     RequestBody = jiffy:encode([]),
     AcceptEncoding = {"accept-encoding", "gzip"},
     Request = {uri(), [AcceptEncoding], "application/json", RequestBody},
     {ok, {{_, 200, _}, _, Body}} = httpc:request(post, Request, [], []),
     zlib:gunzip(Body).
 
-test_options_cors_without_origin() ->
+test_options_cors_without_origin(TestState) ->
     Request = {uri(), []},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
@@ -68,7 +77,7 @@ test_options_cors_without_origin() ->
      {"access-control-allow-origin", "*"},
      {"access-control-allow-methods", "POST"}] = Headers.
 
-test_options_cors_with_origin() ->
+test_options_cors_with_origin(TestState) ->
     Request = {uri(), [{"origin", "http://example.org"}]},
     {ok, {{_, 204, _}, Headers, _}} = httpc:request(options, Request, [], []),
     [{"connection", "Keep-Alive"}, {"content-length", "0"},
@@ -77,7 +86,7 @@ test_options_cors_with_origin() ->
      {"access-control-allow-origin", "http://example.org"},
      {"access-control-allow-methods", "POST"}] = Headers.
 
-test_post_cors_without_origin() ->
+test_post_cors_without_origin(TestState) ->
     Request = {uri(), [], "application/json", "[]"},
     {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
     HeadersSubset = proplists:delete("content-length", Headers),
@@ -88,7 +97,7 @@ test_post_cors_without_origin() ->
      {"access-control-allow-origin", "*"},
      {"access-control-allow-methods", "POST"}] = HeadersSubset.
 
-test_post_cors_with_origin() ->
+test_post_cors_with_origin(TestState) ->
     Request = {uri(), [{"origin", "foo"}], "application/json", "[]"},
     {ok, {{_, 200, _}, Headers, _}} = httpc:request(post, Request, [], []),
     HeadersSubset = proplists:delete("content-length", Headers),
@@ -106,17 +115,17 @@ metrics_auth_header() ->
 
 metrics_uri() -> "http://0:47811/metrics".
 
-test_metrics_auth_401() ->
+test_metrics_auth_401(TestState) ->
     Request = {metrics_uri(), []},
     {ok, {{_, 401, _}, _, _}} = httpc:request(get, Request, [], []).
 
-test_metrics_auth_200() ->
+test_metrics_auth_200(TestState) ->
     Request = {metrics_uri(), [metrics_auth_header()]},
     {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
 
 health_uri() -> "http://0:47811/health-check".
 
-test_health_check_200() ->
+test_health_check_200(TestState) ->
     Request = {health_uri(), []},
     {ok, {{_, 200, _}, _, _}} = httpc:request(get, Request, [], []).
 
